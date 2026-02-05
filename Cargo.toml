@@ -1,8 +1,8 @@
 [package]
 name = "l3_stage_engine"
 version = "2.0.0"
-edition = "2021"
-authors = ["Your Name <your.email@example.com>"]
+edition = "2026"
+authors = devops.0xff@gmail.com
 description = "High-performance PCIe DMA orchestrator achieving 12+ GB/s using Pinned Memory and Async Streams."
 
 [dependencies]
