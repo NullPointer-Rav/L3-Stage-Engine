@@ -1,0 +1,12 @@
+[package]
+name = "l3_stage_engine"
+version = "2.0.0"
+edition = "2021"
+authors = ["Your Name <your.email@example.com>"]
+description = "High-performance PCIe DMA orchestrator achieving 12+ GB/s using Pinned Memory and Async Streams."
+
+[dependencies]
+libc = "0.2"
+
+[build-dependencies]
+cc = { version = "1.0", features = ["parallel"] }
