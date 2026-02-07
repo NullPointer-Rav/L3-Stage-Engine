@@ -757,6 +757,7 @@ pub fn memcpy_async(dst: *mut std::ffi::c_void, src: *const std::ffi::c_void, si
 '''
     
     (Config.PROJECT_DIR / "src" / "runtime" / "bindings.rs").write_text(content)
+
 def create_rust_main():
     """Create main.rs with JSON output for Python parsing."""
     content = '''use l3_stage_engine::*;
