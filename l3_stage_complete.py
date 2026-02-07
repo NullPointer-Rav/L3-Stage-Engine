@@ -757,6 +757,130 @@ pub fn memcpy_async(dst: *mut std::ffi::c_void, src: *const std::ffi::c_void, si
 '''
     
     (Config.PROJECT_DIR / "src" / "runtime" / "bindings.rs").write_text(content)
+def create_rust_main():
+    """Create main.rs with JSON output for Python parsing."""
+    content = '''use l3_stage_engine::*;
+use std::time::Instant;
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize)]
+struct BenchmarkResult {
+    device_name: String,
+    device_type: String,
+    total_memory_gb: f64,
+    baseline_gbps: f64,
+    optimized_gbps: f64,
+    multistream_gbps: f64,
+    improvement_pct: f64,
+}
+
+fn benchmark_baseline(runtime: &Runtime, device_id: usize, chunk_size: usize, total_size: usize) -> Result<f64, String> {
+    let device_mem = DeviceMemory::new(runtime, chunk_size, MemoryType::Device, device_id)?;
+    let mut host_data = vec![0u8; chunk_size];
+    
+    let iterations = total_size / chunk_size;
+    let start = Instant::now();
+    
+    for _ in 0..iterations {
+        memcpy_sync(device_mem.ptr(), host_data.as_ptr() as *const _, chunk_size, Some(device_id), None)?;
+    }
+    
+    let elapsed = start.elapsed().as_secs_f64();
+    Ok((total_size as f64 / 1e9) / elapsed)
+}
+
+fn benchmark_optimized(runtime: &Runtime, device_id: usize, chunk_size: usize, total_size: usize) -> Result<f64, String> {
+    let host_mem = DeviceMemory::new(runtime, chunk_size, MemoryType::Pinned, device_id)?;
+    let device_mem = DeviceMemory::new(runtime, chunk_size, MemoryType::Device, device_id)?;
+    let stream = Stream::new(runtime, device_id)?;
+    
+    let iterations = total_size / chunk_size;
+    let start = Instant::now();
+    
+    for _ in 0..iterations {
+        memcpy_async(device_mem.ptr(), host_mem.ptr(), chunk_size, Some(device_id), Some(device_id), &stream)?;
+        stream.sync();
+    }
+    
+    let elapsed = start.elapsed().as_secs_f64();
+    Ok((total_size as f64 / 1e9) / elapsed)
+}
+
+fn benchmark_multistream(runtime: &Runtime, device_id: usize, chunk_size: usize, total_size: usize, num_streams: usize) -> Result<f64, String> {
+    let total_buffer = chunk_size * num_streams;
+    let host_mem = DeviceMemory::new(runtime, total_buffer, MemoryType::Pinned, device_id)?;
+    
+    let mut device_buffers = Vec::new();
+    let mut streams = Vec::new();
+    
+    for _ in 0..num_streams {
+        device_buffers.push(DeviceMemory::new(runtime, chunk_size, MemoryType::Device, device_id)?);
+        streams.push(Stream::new(runtime, device_id)?);
+    }
+    
+    let iterations = total_size / (chunk_size * num_streams);
+    let start = Instant::now();
+    
+    for _ in 0..iterations {
+        for (idx, (dev_buf, stream)) in device_buffers.iter().zip(streams.iter()).enumerate() {
+            let offset = idx * chunk_size;
+            unsafe {
+                let src_ptr = (host_mem.ptr() as *const u8).add(offset);
+                memcpy_async(dev_buf.ptr(), src_ptr as *const _, chunk_size, Some(device_id), Some(device_id), stream)?;
+            }
+        }
+        for stream in &streams {
+            stream.sync();
+        }
+    }
+    
+    let elapsed = start.elapsed().as_secs_f64();
+    Ok((total_size as f64 / 1e9) / elapsed)
+}
+
+fn main() {
+    let runtime = Runtime::new().expect("Failed to initialize");
+    
+    let chunk_size = 512 * 1024 * 1024;
+    let total_size = 10 * 1024 * 1024 * 1024;
+    let num_streams = 4;
+    
+    let mut results = Vec::new();
+    
+    for i in 0..runtime.device_count() {
+        let info = runtime.device_info(i).unwrap();
+        
+        eprintln!("Benchmarking device {}: {}", i, info.name_str());
+        
+        let baseline = benchmark_baseline(&runtime, i, chunk_size, total_size).unwrap_or(0.0);
+        let optimized = benchmark_optimized(&runtime, i, chunk_size, total_size).unwrap_or(0.0);
+        let multistream = benchmark_multistream(&runtime, i, chunk_size, total_size, num_streams).unwrap_or(0.0);
+        
+        let improvement = if baseline > 0.0 {
+            ((multistream / baseline - 1.0) * 100.0)
+        } else {
+            0.0
+        };
+        
+        let result = BenchmarkResult {
+            device_name: info.name_str(),
+            device_type: format!("{:?}", info.device_type),
+            total_memory_gb: info.total_memory as f64 / 1e9,
+            baseline_gbps: baseline,
+            optimized_gbps: optimized,
+            multistream_gbps: multistream,
+            improvement_pct: improvement,
+        };
+        
+        results.push(result);
+    }
+    
+    let json = serde_json::to_string_pretty(&results).unwrap();
+    println!("{}", json);
+}
+'''
+    
+    (Config.PROJECT_DIR / "src" / "main.rs").write_text(content)
 # ============================================================================
 # Build and Run
 # ============================================================================
