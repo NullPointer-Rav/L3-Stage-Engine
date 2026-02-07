@@ -8,3 +8,28 @@ title: "L3-Stage Engine: High-Performance PCIe DMA Orchestration"
 version: 2.0.0
 date-released: 2026-02-04
 url: "https://github.com/NullPointer-Rav/L3-Stage-Engine/"
+
+message: "If you use this software in your research, please cite it as follows."
+authors:
+  - family-names: "Ahmed"
+    given-names: "Mohamed Sayed"
+    affiliation: "L3-Stage Engine Project"
+    zenodo: "10.5281/zenodo.18512003"
+title: "L3-Stage Engine v3.0: High-Performance Unified Runtime for LLM Offloading"
+version: 3.0.0
+date-released: 2026-02-07
+url: "https://github.com/NullPointer-Rav/L3-Stage-Engine/l3_stage_complete.py"
+repository-code: "https://github.com/NullPointer-Rav/L3-Stage-Engine"
+abstract: >
+  A hybrid Rust/C++ runtime designed to optimize memory throughput across the PCIe bus 
+  for Large Language Model offloading. The engine achieved a 90.7% throughput improvement 
+  on NVIDIA Tesla T4 hardware (reaching 12.31 GB/s) by implementing asynchronous 
+  multi-streaming and pinned memory orchestration.
+keywords:
+  - "CUDA"
+  - "Rust"
+  - "LLM Offloading"
+  - "Memory Bandwidth"
+  - "High-Performance Computing"
+  - "PCIe Gen5"
+license: MIT
