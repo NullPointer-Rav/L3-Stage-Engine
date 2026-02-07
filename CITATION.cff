@@ -14,7 +14,7 @@ authors:
   - family-names: "Ahmed"
     given-names: "Mohamed Sayed"
     affiliation: "L3-Stage Engine Project"
-    zenodo: "10.5281/zenodo.18512003"
+    zenodo: "10.5281/zenodo.18512605"
 title: "L3-Stage Engine v3.0: High-Performance Unified Runtime for LLM Offloading"
 version: 3.0.0
 date-released: 2026-02-07
